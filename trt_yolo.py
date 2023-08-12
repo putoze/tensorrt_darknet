@@ -17,7 +17,7 @@ from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 from utils.yolo_with_plugins import TrtYOLO
-
+from utils.fitEllipse import find_eye_roi,find_max_contour
 
 WINDOW_NAME = 'TrtYOLODemo'
 
@@ -63,12 +63,38 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
         img = cam.read()
+        # auto select if the frame is gray or RGB
         if len(img.shape) < 3:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         if img is None:
             break
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
+        # write my self code
+        # (img, text, org, fontFace, fontScale, color, thickness, lineType)
+        cv2.putText(img,"Esc: Quit",(cam.img_width-300,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(img,"F  : Full Screen",(cam.img_width-300,55), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        eye_count = 0
+        for bb, cf, cl in zip(boxes, confs, clss):
+            if cl == 0:
+                eye_count+=1
+                if(eye_count == 1):
+                    x_min, y_min, x_max, y_max = bb[0], bb[1], bb[2], bb[3]
+                    eye_h1 = y_max-y_min
+                    eye_w1 = x_max-x_min
+                    img[0:eye_h1,0:eye_w1,:] = img[y_min:y_max,x_min:x_max,:]
+                    #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
+                    flag_list = [1,1,1,1,0,1,1]
+                    target_img,contours = find_eye_roi(img[0:eye_h1,0:eye_w1,:],flag_list)
+                    target_img = find_max_contour(target_img,contours)
+                    img[0:eye_h1,0:eye_w1,:] = target_img
+                elif(eye_count == 2):
+                    x_min, y_min, x_max, y_max = bb[0], bb[1], bb[2], bb[3]
+                    eye_h2 = y_max-y_min
+                    eye_w2 = x_max-x_min
+                    img[0:eye_h2,eye_w1:eye_w1+eye_w2,:] = img[y_min:y_max,x_min:x_max,:]
+        # ---------------------------------------------
         img = vis.draw_bboxes(img, boxes, confs, clss)
+        """Draw fps number at down-right corner of the image."""
         img = show_fps(img, fps)
         cv2.imshow(WINDOW_NAME, img)
         toc = time.time()

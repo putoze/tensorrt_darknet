@@ -88,9 +88,9 @@ def open_cam_usb(dev, width, height):
 
 def open_cam_gstr(gstr, width, height):
     gst_str = ('v4l2src device=/dev/video{} ! '
-                   'video/x-raw, width=1280, height=722, format=GRAY16_LE ! '
-                   'videoconvert ! appsink').format(gstr)
-    
+                'video/x-raw, width=1280, height=722, format=GRAY16_LE ! '
+                'autovideoconvert ! appsink').format(gstr)
+    print(gst_str)
     return cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
 
@@ -129,7 +129,6 @@ def grab_img(cam):
     """
     while cam.thread_running:
         _, cam.img_handle = cam.cap.read()
-        # cam.img_handle = cv2.cvtColor(cam.img_handle, cv2.COLOR_GRAY2BGR)
         if cam.img_handle is None:
             #logging.warning('Camera: cap.read() returns None...')
             break
@@ -210,7 +209,11 @@ class Camera():
 
         # Try to grab the 1st image and determine width and height
         _, self.img_handle = self.cap.read()
-        self.img_handle = cv2.cvtColor(self.img_handle, cv2.COLOR_GRAY2BGR)
+
+        # If input is gray image, transfer it into BGR 3 dim format
+        if len(self.img_handle.shape) < 3:
+            self.img_handle = cv2.cvtColor(self.img_handle, cv2.COLOR_GRAY2BGR)
+
         if self.img_handle is None:
             logging.warning('Camera: cap.read() returns no image!')
             self.is_opened = False

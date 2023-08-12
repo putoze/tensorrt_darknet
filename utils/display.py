@@ -25,12 +25,12 @@ def show_help_text(img, help_text):
 
 
 def show_fps(img, fps):
-    """Draw fps number at top-left corner of the image."""
+    """Draw fps number at down-right corner of the image."""
     font = cv2.FONT_HERSHEY_PLAIN
     line = cv2.LINE_AA
     fps_text = 'FPS: {:.2f}'.format(fps)
-    cv2.putText(img, fps_text, (11, 20), font, 1.0, (32, 32, 32), 4, line)
-    cv2.putText(img, fps_text, (10, 20), font, 1.0, (240, 240, 240), 1, line)
+    cv2.putText(img, fps_text, (img.shape[1]-99, img.shape[0]-20), font, 1.0, (32, 32, 32), 4, line) # (11, 20)
+    cv2.putText(img, fps_text, (img.shape[1]-100, img.shape[0]-20), font, 1.0, (240, 240, 240), 1, line) # (10, 20)
     return img
 
 
