@@ -4,7 +4,7 @@ from utils.fitEllipse import find_eye_roi,find_max_contour
 
 img = cv2.imread("eye.jpg")  
 
-flag_list = [1,1,0,1,0,1,1]
+flag_list = [1,1,1,1,1,1,1]
 target_img,contours = find_eye_roi(img,flag_list)
 target_img = find_max_contour(target_img,contours)
 

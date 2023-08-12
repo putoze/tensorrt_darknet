@@ -73,25 +73,35 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         # (img, text, org, fontFace, fontScale, color, thickness, lineType)
         cv2.putText(img,"Esc: Quit",(cam.img_width-300,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.putText(img,"F  : Full Screen",(cam.img_width-300,55), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        eye_count = 0
+        bb_list = []
         for bb, cf, cl in zip(boxes, confs, clss):
             if cl == 0:
-                eye_count+=1
-                if(eye_count == 1):
-                    x_min, y_min, x_max, y_max = bb[0], bb[1], bb[2], bb[3]
+                bb_list.append(bb)
+        if(len(bb_list) >= 1):
+            x_min, y_min, x_max, y_max = bb_list[0][0], bb_list[0][1], bb_list[0][2], bb_list[0][3]
+            eye_h1 = y_max-y_min
+            eye_w1 = x_max-x_min
+            if(len(bb_list) == 2):
+                if(bb_list[0][0] > bb_list[1][0]):
+                    x1_min, y1_min, x1_max, y1_max = x_min, y_min, x_max, y_max
+                    x_min, y_min, x_max, y_max = bb_list[1][0], bb_list[1][1], bb_list[1][2], bb_list[1][3]
                     eye_h1 = y_max-y_min
                     eye_w1 = x_max-x_min
-                    img[0:eye_h1,0:eye_w1,:] = img[y_min:y_max,x_min:x_max,:]
-                    #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
-                    flag_list = [1,1,1,1,0,1,1]
-                    target_img,contours = find_eye_roi(img[0:eye_h1,0:eye_w1,:],flag_list)
-                    target_img = find_max_contour(target_img,contours)
-                    img[0:eye_h1,0:eye_w1,:] = target_img
-                elif(eye_count == 2):
-                    x_min, y_min, x_max, y_max = bb[0], bb[1], bb[2], bb[3]
-                    eye_h2 = y_max-y_min
-                    eye_w2 = x_max-x_min
-                    img[0:eye_h2,eye_w1:eye_w1+eye_w2,:] = img[y_min:y_max,x_min:x_max,:]
+                else:
+                    x1_min, y1_min, x1_max, y1_max = bb_list[1][0], bb_list[1][1], bb_list[1][2], bb_list[1][3]
+                eye_h2 = y1_max-y1_min
+                eye_w2 = x1_max-x1_min
+    
+                img[0:eye_h1,eye_w1:eye_w1+eye_w1,:] = img[y1_min:y1_min+eye_h1,x1_min:x1_min+eye_w1,:]
+            img[0:eye_h1,0:eye_w1,:] = img[y_min:y_max,x_min:x_max,:]
+            
+
+        #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
+        # flag_list = [1,1,1,1,1,1,1]
+        # target_img,contours = find_eye_roi(img[0:eye_h1,0:eye_w1,:],flag_list)
+        # target_img = find_max_contour(target_img,contours)
+        # img[0:eye_h1,0:eye_w1,:] = target_img
+
         # ---------------------------------------------
         img = vis.draw_bboxes(img, boxes, confs, clss)
         """Draw fps number at down-right corner of the image."""

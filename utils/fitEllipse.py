@@ -12,7 +12,7 @@ def find_eye_roi(img,flag_list):
 
     # Thresholding if binary_flag is true
     if flag_list[1]:
-        _, binary = cv2.threshold(target_img, 95, 255, cv2.THRESH_BINARY) #THRESH_BINARY
+        _, binary = cv2.threshold(target_img, 95, 255, cv2.THRESH_TOZERO_INV) 
     #     binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
     # cv2.THRESH_BINARY, 11, 2)
         # binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,\
@@ -27,7 +27,7 @@ def find_eye_roi(img,flag_list):
 
     # Gaussian blur if Gaussblur_flag is true
     if flag_list[3]:
-        Gaussblur_img = cv2.GaussianBlur(target_img, (3, 3), 0)
+        Gaussblur_img = cv2.GaussianBlur(target_img, (5, 5), 0)
         target_img = Gaussblur_img
 
     # Sobel edge detection if Sobel_flag is true
@@ -41,7 +41,7 @@ def find_eye_roi(img,flag_list):
 
     # Canny edge detection if Canny_flag is true
     if flag_list[5]:
-        canny = cv2.Canny(target_img, 15, 200)
+        canny = cv2.Canny(target_img, 30, 150)
         target_img = canny
 
     # Find contours if Contours_flag is true
@@ -49,11 +49,18 @@ def find_eye_roi(img,flag_list):
         _ , contours, _ = cv2.findContours(target_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         cv2.drawContours(target_img, contours, -1, (0, 255, 0), 3)
 
-    # cv2.imshow("binary Image", binary)
-    # cv2.imshow("morphology Image", morphology_img)
-    # cv2.imshow("Gaussian Image", Gaussblur_img)
-    # cv2.imshow("canny Image", canny)
-    # cv2.imshow("contours Image", target_img)
+    # if flag_list[1]:
+    #     cv2.imshow("binary Image", binary)
+    # if flag_list[2]:
+    #     cv2.imshow("morphology Image", morphology_img)
+    # if flag_list[3]:
+    #     cv2.imshow("Gaussian Image", Gaussblur_img)
+    # if flag_list[4]:
+    #     cv2.imshow("Sobel_img Image", Sobel_img)
+    # if flag_list[5]:
+    #     cv2.imshow("canny Image", canny)
+    # if flag_list[6]:
+    #     cv2.imshow("contours Image", target_img)
 
     return target_img,contours
 
