@@ -4,7 +4,6 @@ This script demonstrates how to do real-time object detection with
 TensorRT optimized YOLO engine.
 """
 
-
 import os
 import time
 import argparse
@@ -17,7 +16,7 @@ from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 from utils.yolo_with_plugins import TrtYOLO
-from utils.fitEllipse import find_max_contour
+from utils.fitEllipse import find_max_Thresh
 
 WINDOW_NAME = 'TrtYOLODemo'
 
@@ -60,10 +59,32 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
     fps = 0.0
     tic = time.time()
 
-    nose_center_point = ()
-    mouse_center_point = ()
-    right_eye_img = 0
-    left_eye_img = 0
+    # Self-define global parameter
+    # ---------------------------
+    # ------ face imformation ------
+    nose_center_point = (0,0)
+    mouse_center_point = (0,0)
+    left_center = (0,0)
+    right_center = (0,0)
+    eye_w_roi = 100
+    eye_h_roi = 50
+    #------ put txt ------
+    base_txt_height = 25
+    gap_txt_height = 30
+    len_width = 400
+    #------ eye img ------
+    right_eye_img = cv2.imread("./test_image/3.png")  
+    right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
+    left_eye_img = cv2.imread("./test_image/2.png")  
+    left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
+    # ---------------------------
+
+    print("")
+    print("-------------------------------")
+    print("------------ Start ------------")
+    print("-------------------------------")
+    print("")
+
     while True:
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
@@ -76,47 +97,111 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         # write my self code
         #(img, text, org, fontFace, fontScale, color, thickness, lineType)
-        cv2.putText(img,"Esc: Quit",(cam.img_width-300,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(img,"F  : Full Screen",(cam.img_width-300,55), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # Write the user guide interface
+        cv2.putText(img,"Esc: Quit",(cam.img_width-len_width,base_txt_height), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        cv2.putText(img,"F  : Full Screen",(cam.img_width-len_width,base_txt_height+gap_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # ------- Main Algorithm ------
         bb_eye_list = []
+        bb_pupil_list = []
         for bb, cf, cl in zip(boxes, confs, clss):
             if cl == 0:
                 bb_eye_list.append(bb)
+            if cl == 1:
+                bb_pupil_list.append(bb)
             if cl == 2:
-                nose_center_point = ((bb[2]-bb[0])/2,(bb[3]-bb[1])/2)
+                nose_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
             if cl == 3:
-                mouse_center_point = ((bb[2]-bb[0])/2,(bb[3]-bb[1])/2)
-            
+                mouse_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
+
+        # Sorted 
+        # bb_eye_list = sorted(bb_eye_list, key=lambda x: x[0])
+        # bb_pupil_list = sorted(bb_pupil_list, key=lambda x: x[0])
+
         # To find the eye roi
-        if(len(bb_eye_list) >= 1):
-            flag_list = [1,1,1,1,1,1,1]
-            x_min, y_min, x_max, y_max = bb_eye_list[0][0], bb_eye_list[0][1], bb_eye_list[0][2], bb_eye_list[0][3]
-            eye_h1 = y_max-y_min
-            eye_w1 = x_max-x_min
-            if(len(bb_eye_list) == 2):
-                if(bb_eye_list[0][0] > bb_eye_list[1][0]):
-                    x1_min, y1_min, x1_max, y1_max = x_min, y_min, x_max, y_max
-                    x_min, y_min, x_max, y_max = bb_eye_list[1][0], bb_eye_list[1][1], bb_eye_list[1][2], bb_eye_list[1][3]
-                    eye_h1 = y_max-y_min
-                    eye_w1 = x_max-x_min
-                else:
-                    x1_min, y1_min, x1_max, y1_max = bb_eye_list[1][0], bb_eye_list[1][1], bb_eye_list[1][2], bb_eye_list[1][3]
-                # eye_h2 = y1_max-y1_min
-                # eye_w2 = x1_max-x1_min
+        flag_list = [1,1,1,1,1,1,1]
+        for i in range(len(bb_eye_list)):
+            x_min, y_min, x_max, y_max = bb_eye_list[i][0], \
+                bb_eye_list[i][1], bb_eye_list[i][2], bb_eye_list[i][3]
+            # center eye roi from yolo-detection
+            cen_eye = (x_min+(x_max - x_min)/2,y_min+(y_max - y_min)/2)
 
-                # use left eye region as roi
-                right_eye_img = img[y1_min:y1_min+eye_h1,x1_min:x1_min+eye_w1,:]
+            # print("number of eye index:",i)
+            # print("center of class nose x:", nose_center_point[0])
+            # print("center of class mouse x:", mouse_center_point[0])
+            # print("center of class eye x:", cen_eye[0])
 
+            # using nose and mouse center to determine left or right region of eye
+            if(cen_eye[0] < nose_center_point[0] or cen_eye[0] < mouse_center_point[0]):
+                left_eye_img = img[y_min:y_max,x_min:x_max,:]
+                input_left_eye_img = left_eye_img
+                # determine input image
+                for i in range(len(bb_pupil_list)):
+                    x1_min, y1_min, x1_max, y1_max = bb_pupil_list[i][0], \
+                        bb_pupil_list[i][1], bb_pupil_list[i][2], bb_pupil_list[i][3]
+                    cen_eye = (x1_min+(x1_max - x1_min)/2,y1_min+(y1_max - y1_min)/2)
+                    # if center of pupil in the region of eye, then change input image
+                    if(cen_eye[0] < x_max and cen_eye[0] > x_min 
+                       and cen_eye[1] < y_max and cen_eye[1] > y_min):
+                        input_left_eye_img = img[y1_min:y1_max,x1_min:x1_max,:]
+                        x_min, y_min, x_max, y_max = x1_min, y1_min, x1_max, y1_max
+                
                 #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
-                right_eye_img = find_max_contour(right_eye_img,flag_list)
-                img[0:eye_h1,eye_w1:eye_w1+eye_w1,:]  = right_eye_img
+                elPupilThresh_left = find_max_Thresh(input_left_eye_img,flag_list)
+                if elPupilThresh_left != None:
+                    # update elPupilThresh into golbal image
+                    center = (int(elPupilThresh_left[0][0] + x_min), int(elPupilThresh_left[0][1] + y_min))
+                    new_elPupilThresh_left = (center,elPupilThresh_left[1],elPupilThresh_left[2])
+                    cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
+                    cv2.circle(img, center, 3, (0, 0, 255), -1)
+                    left_center = center
+                # resize image into top left corner
+                left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
 
-            left_eye_img = img[y_min:y_max,x_min:x_max,:]
-            #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
-            left_eye_img = find_max_contour(left_eye_img,flag_list)
-            img[0:eye_h1,0:eye_w1,:] = left_eye_img
+            elif(cen_eye[0] > nose_center_point[0] or cen_eye[0] > mouse_center_point[0]):
+                right_eye_img = img[y_min:y_max,x_min:x_max,:]
+                input_right_eye_img = right_eye_img
+                # determine input image
+                for i in range(len(bb_pupil_list)):
+                    x1_min, y1_min, x1_max, y1_max = bb_pupil_list[i][0], \
+                        bb_pupil_list[i][1], bb_pupil_list[i][2], bb_pupil_list[i][3]
+                    cen_eye = (x1_min+(x1_max - x1_min)/2,y1_min+(y1_max - y1_min)/2)
+                    # if center of pupil in the region of eye, then change input image
+                    if(cen_eye[0] < x_max and cen_eye[0] > x_min 
+                       and cen_eye[1] < y_max and cen_eye[1] > y_min):
+                        input_right_eye_img = img[y1_min:y1_max,x1_min:x1_max,:]
+                        x_min, y_min, x_max, y_max = x1_min, y1_min, x1_max, y1_max
+                
+                #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
+                elPupilThresh_right = find_max_Thresh(input_right_eye_img,flag_list)
+                if elPupilThresh_right != None:
+                    # update elPupilThresh into golbal image
+                    center = (int(elPupilThresh_right[0][0] + x_min), int(elPupilThresh_right[0][1] + y_min))
+                    new_elPupilThresh_right = (center,elPupilThresh_right[1],elPupilThresh_right[2])
+                    cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
+                    cv2.circle(img, center, 3, (0, 0, 255), -1)
+                    right_center = center
 
+                # resize image into top left corner
+                right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
+
+        # update eye image
+        img[0:eye_h_roi,0:eye_w_roi,:] = left_eye_img
+        img[0:eye_h_roi,eye_w_roi:2*eye_w_roi,:]  = right_eye_img
+
+        content = "Left-center:("+str(left_center[0])+","+str(left_center[1])+")"
+        # update center point
+        cv2.putText(img,content,(cam.img_width-len_width,base_txt_height+2*gap_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        content = "Right-center:("+str(right_center[0])+","+str(right_center[1])+")"
+        cv2.putText(img,content,(cam.img_width-len_width,base_txt_height+3*gap_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        # end my self code
         # ---------------------------------------------
+
+
         img = vis.draw_bboxes(img, boxes, confs, clss)
         """Draw fps number at down-right corner of the image."""
         img = show_fps(img, fps)
@@ -128,6 +213,11 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         tic = toc
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
+            print("")
+            print("-------------------------------")
+            print("------ See You Next Time ------")
+            print("-------------------------------")
+            print("")
             break
         elif key == ord('F') or key == ord('f'):  # Toggle fullscreen
             full_scrn = not full_scrn

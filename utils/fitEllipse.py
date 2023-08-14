@@ -2,12 +2,12 @@ import cv2
 import numpy as np
 import math
 
-def find_max_contour(img,flag_list):
+def find_max_Thresh(input_img,flag_list):
     target_img = None
 
     # Convert to grayscale if gray_flag is true
     if flag_list[0]:
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_gray = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
         target_img = img_gray
 
     # Thresholding if binary_flag is true
@@ -73,7 +73,7 @@ def find_max_contour(img,flag_list):
             max_countuor = contour
 
     # Find best areas
-    print("max area", maxArea)
+    # print("max area", maxArea)
 
     if maxArea != 0:
         # momentsPupilThresh = cv2.moments(max_countuor)
@@ -88,27 +88,25 @@ def find_max_contour(img,flag_list):
             return 0
         
         elPupilThresh = cv2.fitEllipse(contour_pt_array)
-        print("elPupilThresh")
-        print("Center:",elPupilThresh[0])
-        print("Size:" ,elPupilThresh[1])
-        print("Angle:" ,elPupilThresh[2])
 
-        Color = (0, 255, 0)  # Green color
-        thickness = 2
+        # print("elPupilThresh")
+        # print("Center:",elPupilThresh[0])
+        # print("Size:" ,elPupilThresh[1])
+        # print("Angle:" ,elPupilThresh[2])
 
-        cv2.ellipse(img_gray, elPupilThresh, Color, thickness)
-        cv2.circle(img_gray, (int(elPupilThresh[0][0]),int(elPupilThresh[0][1])), 3, (0, 0, 255), -1)
+        # Color = (0, 255, 0)  # Green color
+        # thickness = 2
+        # center = (int(elPupilThresh[0][0]),int(elPupilThresh[0][1]))
+        # cv2.ellipse(draw_img, elPupilThresh, Color, thickness)
+        # cv2.circle(draw_img, center, 3, (0, 0, 255), -1)
         
-        img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
+        # final_img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
 
-        return img
+        return elPupilThresh
     else :
-        return 0
+        return None
 
     
-def sort_bb_list(bb_list):
-    for i in range(len(bb_list)):
-        x_min, y_min, x_max, y_max = bb_list[i][0], bb_list[i][1], bb_list[i][2], bb_list[i][3]
         
         
         
