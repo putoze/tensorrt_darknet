@@ -31,7 +31,7 @@ if [ $MY_mode -eq 1 ] ; then
     echo ============
     python3 trt_yolo.py \
     -m ./mid-track0808/yolov3-tiny-mid_eyetracker0808 \
-    --usb 8 -c 5 -t 0.98 #--width 1280 --height 722
+    --usb 0 -c 5 -t 0.98 #--width 1280 --height 722
 
 fi
 

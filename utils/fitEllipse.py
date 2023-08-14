@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 
-def find_eye_roi(img,flag_list):
+def find_max_contour(img,flag_list):
     target_img = None
 
     # Convert to grayscale if gray_flag is true
@@ -12,7 +12,7 @@ def find_eye_roi(img,flag_list):
 
     # Thresholding if binary_flag is true
     if flag_list[1]:
-        _, binary = cv2.threshold(target_img, 95, 255, cv2.THRESH_TOZERO_INV) 
+        _, binary = cv2.threshold(target_img, 127, 255, cv2.THRESH_BINARY_INV) #95, 255
     #     binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
     # cv2.THRESH_BINARY, 11, 2)
         # binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,\
@@ -49,6 +49,7 @@ def find_eye_roi(img,flag_list):
         _ , contours, _ = cv2.findContours(target_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         cv2.drawContours(target_img, contours, -1, (0, 255, 0), 3)
 
+    # to show image or not
     # if flag_list[1]:
     #     cv2.imshow("binary Image", binary)
     # if flag_list[2]:
@@ -62,9 +63,7 @@ def find_eye_roi(img,flag_list):
     # if flag_list[6]:
     #     cv2.imshow("contours Image", target_img)
 
-    return target_img,contours
-
-def find_max_contour(img,contours):
+    # find max area
     maxArea = 0
     max_countuor = 0
     for contour in contours:
@@ -72,19 +71,22 @@ def find_max_contour(img,contours):
         if area > maxArea:
             maxArea = area
             max_countuor = contour
+
     # Find best areas
     print("max area", maxArea)
 
     if maxArea != 0:
-        momentsPupilThresh = cv2.moments(max_countuor)
-        center = (int(momentsPupilThresh["m10"] / momentsPupilThresh["m00"]),
-                     int(momentsPupilThresh["m01"] / momentsPupilThresh["m00"]))
+        # momentsPupilThresh = cv2.moments(max_countuor)
+        # center = (int(momentsPupilThresh["m10"] / momentsPupilThresh["m00"]),
+        #              int(momentsPupilThresh["m01"] / momentsPupilThresh["m00"]))
 
-        cv2.circle(img, center, 3, (0, 0, 255), -1)
-        contour_pt_array = np.array(contour, dtype=np.int32)
+        # cv2.circle(img, center, 3, (0, 0, 255), -1)
+        contour_pt_array = np.array(max_countuor, dtype=np.int32)
+
         # Avoid to break the system
         if(contour_pt_array.shape[0] < 5):
             return 0
+        
         elPupilThresh = cv2.fitEllipse(contour_pt_array)
         print("elPupilThresh")
         print("Center:",elPupilThresh[0])
@@ -94,11 +96,20 @@ def find_max_contour(img,contours):
         Color = (0, 255, 0)  # Green color
         thickness = 2
 
-        cv2.ellipse(img, elPupilThresh, Color, thickness)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        cv2.ellipse(img_gray, elPupilThresh, Color, thickness)
+        cv2.circle(img_gray, (int(elPupilThresh[0][0]),int(elPupilThresh[0][1])), 3, (0, 0, 255), -1)
+        
+        img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
+
         return img
     else :
         return 0
 
     
+def sort_bb_list(bb_list):
+    for i in range(len(bb_list)):
+        x_min, y_min, x_max, y_max = bb_list[i][0], bb_list[i][1], bb_list[i][2], bb_list[i][3]
+        
+        
+        
 
