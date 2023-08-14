@@ -60,8 +60,8 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
     fps = 0.0
     tic = time.time()
 
-    nose_center_point = 0
-    mouse_center_point = 0
+    nose_center_point = ()
+    mouse_center_point = ()
     right_eye_img = 0
     left_eye_img = 0
     while True:
@@ -82,6 +82,10 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         for bb, cf, cl in zip(boxes, confs, clss):
             if cl == 0:
                 bb_eye_list.append(bb)
+            if cl == 2:
+                nose_center_point = ((bb[2]-bb[0])/2,(bb[3]-bb[1])/2)
+            if cl == 3:
+                mouse_center_point = ((bb[2]-bb[0])/2,(bb[3]-bb[1])/2)
             
         # To find the eye roi
         if(len(bb_eye_list) >= 1):
