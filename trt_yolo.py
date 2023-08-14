@@ -59,6 +59,11 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
     full_scrn = False
     fps = 0.0
     tic = time.time()
+
+    nose_center_point = 0
+    mouse_center_point = 0
+    right_eye_img = 0
+    left_eye_img = 0
     while True:
         if cv2.getWindowProperty(WINDOW_NAME, 0) < 0:
             break
