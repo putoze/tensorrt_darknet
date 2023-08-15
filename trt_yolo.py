@@ -20,7 +20,6 @@ from utils.fitEllipse import find_max_Thresh
 
 WINDOW_NAME = 'TrtYOLODemo'
 
-
 def parse_args():
     """Parse input arguments."""
     desc = ('Capture and display live camera video, while doing '
@@ -69,14 +68,18 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
     eye_w_roi = 100
     eye_h_roi = 50
     #------ put txt ------
-    base_txt_height = 25
-    gap_txt_height = 30
+    base_txt_height = 20
+    gap_txt_height = 35
     len_width = 400
     #------ eye img ------
-    right_eye_img = cv2.imread("./test_image/3.png")  
+    right_eye_img = cv2.imread("./test_image/eye/3.png")  
     right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
-    left_eye_img = cv2.imread("./test_image/2.png")  
+    left_eye_img = cv2.imread("./test_image/eye/2.png")  
     left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
+    #------ record/save ------
+    save_cnt = 0
+    start_record_f = 0
+    save_video_cnt = 0
     # ---------------------------
 
     print("")
@@ -98,10 +101,23 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         # write my self code
         #(img, text, org, fontFace, fontScale, color, thickness, lineType)
         # Write the user guide interface
+        next_txt_height = base_txt_height
         cv2.putText(img,"Esc: Quit",(cam.img_width-len_width,base_txt_height), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(img,"F  : Full Screen",(cam.img_width-len_width,base_txt_height+gap_txt_height),
+        next_txt_height += gap_txt_height
+        cv2.putText(img,"F  : Full Screen",(cam.img_width-len_width,next_txt_height),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
+        cv2.putText(img,"S  : Save img",(cam.img_width-len_width,next_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
+        cv2.putText(img,"R  : Record video",(cam.img_width-len_width,next_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
+        cv2.putText(img,"E  : End record video",(cam.img_width-len_width,next_txt_height),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
+
         # ------- Main Algorithm ------
         bb_eye_list = []
         bb_pupil_list = []
@@ -192,17 +208,19 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
 
         content = "Left-center:("+str(left_center[0])+","+str(left_center[1])+")"
         # update center point
-        cv2.putText(img,content,(cam.img_width-len_width,base_txt_height+2*gap_txt_height),
+        cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
         content = "Right-center:("+str(right_center[0])+","+str(right_center[1])+")"
-        cv2.putText(img,content,(cam.img_width-len_width,base_txt_height+3*gap_txt_height),
+        cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        next_txt_height += gap_txt_height
 
         # end my self code
         # ---------------------------------------------
 
-
         img = vis.draw_bboxes(img, boxes, confs, clss)
+
         """Draw fps number at down-right corner of the image."""
         img = show_fps(img, fps)
         cv2.imshow(WINDOW_NAME, img)
@@ -211,6 +229,10 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
         # calculate an exponentially decaying average of fps number
         fps = curr_fps if fps == 0.0 else (fps*0.95 + curr_fps*0.05)
         tic = toc
+
+        if(start_record_f):
+            out.write(img)
+
         key = cv2.waitKey(1)
         if key == 27:  # ESC key: quit program
             print("")
@@ -223,6 +245,22 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
             full_scrn = not full_scrn
             set_display(WINDOW_NAME, full_scrn)
 
+        # write a img when press buttom r
+        elif key == ord('s') or key == ord('S'):
+            save_path = cam.args.save_img+str(save_cnt)+".jpg"
+            cv2.imwrite(save_path,img)
+            print("Save img:",save_cnt)
+            save_cnt += 1
+        elif (key == ord('r') or key == ord('R')) and not start_record_f :
+            start_record_f = 1
+            save_video_path = cam.args.save_record+str(save_video_cnt)+".avi"
+            out = cv2.VideoWriter(save_video_path,cv2.VideoWriter_fourcc(*'XVID'), 20.0, (1280,722))
+            print("Start record")
+        elif (key == ord('e') or key == ord('E')) and start_record_f:
+            start_record_f = 0
+            save_video_cnt += 1
+            out.release()
+            print("End record")
 
 def main():
     args = parse_args()

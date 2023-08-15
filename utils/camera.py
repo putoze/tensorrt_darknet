@@ -49,6 +49,11 @@ def add_camera_args(parser):
                         help='image width [640]')
     parser.add_argument('--height', type=int, default=480,
                         help='image height [480]')
+    # self add
+    parser.add_argument('--save_img', type=str, default='./save_img/save_img',
+                        help='determine save img path')
+    parser.add_argument('--save_record', type=str, default='./save_img/save_record',
+                        help='determine save video path')
     return parser
 
 
