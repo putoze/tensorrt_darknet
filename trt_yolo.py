@@ -68,7 +68,7 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
     eye_w_roi = 100
     eye_h_roi = 50
     #------ put txt ------
-    base_txt_height = 20
+    base_txt_height = 25
     gap_txt_height = 35
     len_width = 400
     #------ eye img ------

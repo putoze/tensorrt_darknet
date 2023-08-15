@@ -6,9 +6,13 @@ echo [0]: otocam  yolov3-tiny-mid_eyetracker0808
 echo ----------------
 echo [1]: webcam  yolov3-tiny-mid_eyetracker0808
 echo ----------------
-echo [2]: otocam  yolov3-tiny-mid-track-owl
+echo [2]: map  yolov3-tiny-mid-track-owl
 echo ----------------
-echo [3]: img  yolov3-tiny-mid-track-owl
+echo [3]: otocam  yolov3-tiny-mid-track-owl
+echo ----------------
+echo [4]: img  yolov3-tiny-mid_eyetracker0808
+echo ----------------
+echo [5]: map  yolov3-tiny-mid-track-owl
 echo ----------------
 echo -n "Press enter to start it:"
 
@@ -43,6 +47,17 @@ fi
 
 if [ $MY_mode -eq 2 ] ; then
     echo ============
+    echo 「map tensorrt demo with yolov3-tiny-mid_eyetracker」
+    echo ============
+    python3 eval_yolo.py \
+    -m ./mid-track-owl/yolov3-tiny-mid_eyetracker 
+
+fi
+
+#============================================================================ 
+
+if [ $MY_mode -eq 3 ] ; then
+    echo ============
     echo 「otocam tensorrt demo with yolov3-tiny-mid_eyetracker」
     echo ============
     python3 trt_yolo.py \
@@ -52,15 +67,15 @@ fi
 
 #============================================================================ 
 
-if [ $MY_mode -eq 3 ] ; then
+if [ $MY_mode -eq 4 ] ; then
     echo ============
-    echo img tensorrt demo with yolov3-tiny-mid_eyetracker」
+    echo img tensorrt demo with yolov3-tiny-mid_eyetracker0808」
     echo ============
 
     for filelist in ./test_image/frank/*.png;do
     
     python3 trt_yolo.py \
-    -m ./mid-track-owl/yolov3-tiny-mid_eyetracker \
+    -m ./mid-track0808/yolov3-tiny-mid_eyetracker0808 \
     --image $filelist \
     -t 0.98 #--width 1280 --height 722
     done
