@@ -10,6 +10,8 @@ import argparse
 
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
+from utils.mtcnn import TrtMtcnn
+
 
 from utils.yolo_classes import get_cls_dict
 from utils.camera import add_camera_args, Camera
@@ -45,7 +47,16 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def loop_and_detect(cam, trt_yolo, conf_th, vis):
+def show_faces(img, boxes, landmarks):
+    """Draw bounding boxes and face landmarks on image."""
+    for bb, ll in zip(boxes, landmarks):
+        x1, y1, x2, y2 = int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])
+        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        for j in range(5):
+            cv2.circle(img, (int(ll[j]), int(ll[j+5])), 2, (0, 255, 0), 2)
+    return img
+
+def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     """Continuously capture images from camera and do object detection.
 
     # Arguments
@@ -130,6 +141,13 @@ def loop_and_detect(cam, trt_yolo, conf_th, vis):
                 nose_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
             if cl == 3:
                 mouse_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
+
+        # # ------ MTCNN ------
+        dets, landmarks = mtcnn.detect(img, minsize=40)
+        # print('{} face(s) found'.format(len(dets)))
+        img = show_faces(img, dets, landmarks)
+
+        # # ------ END MTCNN ------
 
         # Sorted 
         # bb_eye_list = sorted(bb_eye_list, key=lambda x: x[0])
@@ -276,11 +294,14 @@ def main():
     cls_dict = get_cls_dict(args.category_num)
     vis = BBoxVisualization(cls_dict)
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
+    
+    # add MTCNN detector
+    mtcnn = TrtMtcnn()
 
     open_window(
         WINDOW_NAME, 'Camera TensorRT YOLO Demo',
         cam.img_width, cam.img_height)
-    loop_and_detect(cam, trt_yolo, args.conf_thresh, vis=vis)
+    loop_and_detect(cam, trt_yolo, mtcnn, args.conf_thresh, vis=vis)
 
     cam.release()
     cv2.destroyAllWindows()

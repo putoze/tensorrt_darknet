@@ -46,8 +46,9 @@ def find_max_Thresh(input_img,flag_list):
 
     # Find contours if Contours_flag is true
     if flag_list[6]:
-        _ , contours, _ = cv2.findContours(target_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        cv2.drawContours(target_img, contours, -1, (0, 255, 0), 3)
+        contours, _ = cv2.findContours(target_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        # cv2.drawContours(target_img, contours, 3, (0, 255, 0), 3)
+
 
     # to show image or not
     # if flag_list[1]:

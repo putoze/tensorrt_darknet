@@ -12,10 +12,13 @@ certifi==2023.7.22
 Cython==3.0.0
 dataclasses==0.8
 decorator==5.1.1
+keras==2.10.0
 Mako==1.1.6
 MarkupSafe==2.0.1
+mtcnn==0.1.1
 numpy==1.19.4
 onnx==1.9.0
+opencv-python==4.8.0.76
 platformdirs==2.4.0
 protobuf==3.19.6
 pycuda==2020.1
@@ -33,7 +36,7 @@ typing_extensions==4.1.1
 - Xavier AGX JetPack-4.6
 - Yolov3-tiny(my own dataset training from AlexAB darknet)
 - python 3.6.9
-- opencv 3.3.1
+- opencv-python==4.8.0.76
 - otocam 250
 
 ## Step to run
@@ -52,13 +55,11 @@ conda activate yolov3_tenrt
 ----------------
 [1]: webcam  yolov3-tiny-mid_eyetracker0808
 ----------------
-[2]: map  yolov3-tiny-mid-track-owl
+[2]: img  yolov3-tiny-mid_eyetracker0808
 ----------------
 [3]: otocam  yolov3-tiny-mid-track-owl
 ----------------
-[4]: img  yolov3-tiny-mid-track-owl
-----------------
-[5]: map  yolov3-tiny-mid-track-owl
+[4]: otocam mtcnn  
 ----------------
 "Press enter to start it:"
 ```
