@@ -11,6 +11,7 @@ import argparse
 import cv2
 import pycuda.autoinit  # This is needed for initializing CUDA driver
 from utils.mtcnn import TrtMtcnn
+import numpy as np
 
 
 from utils.yolo_classes import get_cls_dict
@@ -51,10 +52,32 @@ def show_faces(img, boxes, landmarks):
     """Draw bounding boxes and face landmarks on image."""
     for bb, ll in zip(boxes, landmarks):
         x1, y1, x2, y2 = int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])
-        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        # cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
         for j in range(5):
+            # cv2.putText(img,str(j),(int(ll[j]), int(ll[j+5])),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             cv2.circle(img, (int(ll[j]), int(ll[j+5])), 2, (0, 255, 0), 2)
     return img
+
+
+def affineMatrix_eye(img, boxes, landmarks, scale=2.5):
+    for bb, ll in zip(boxes, landmarks):
+        x1, y1, x2, y2 = int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])
+        nose = np.array([ll[2],ll[7]], dtype=np.float32)
+        left_eye = np.array([ll[0],ll[5]], dtype=np.float32)
+        right_eye = np.array([ll[1],ll[6]], dtype=np.float32)
+        eye_width = right_eye - left_eye
+        angle = np.arctan2(eye_width[1], eye_width[0])
+        # print(eye_width)
+        center = nose
+        alpha = np.cos(angle)
+        beta = np.sin(angle)
+        w = np.sqrt(np.sum(eye_width**2)) * scale
+        w = int(w)
+        m =  np.array([[alpha, beta, -alpha * center[0] - beta * center[1] + w * 0.5],
+            [-beta, alpha, beta * center[0] - alpha * center[1] + w * 0.5]])
+        align_eye = cv2.warpAffine(img,m,(w,w))
+
+    return align_eye 
 
 def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     """Continuously capture images from camera and do object detection.
@@ -78,8 +101,9 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     right_center = (0,0)
     eye_w_roi = 100
     eye_h_roi = 50
+    face_roi = 200
     #------ put txt ------
-    base_txt_height = 25
+    base_txt_height = 35
     gap_txt_height = 35
     len_width = 400
     #------ eye img ------
@@ -91,6 +115,8 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     save_cnt = 0
     start_record_f = 0
     save_video_cnt = 0
+    #------ frame conut ------
+
     # ---------------------------
 
     print("")
@@ -146,7 +172,12 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         dets, landmarks = mtcnn.detect(img, minsize=40)
         # print('{} face(s) found'.format(len(dets)))
         img = show_faces(img, dets, landmarks)
-
+        if len(dets) != 0:
+            align_eye = affineMatrix_eye(img, dets, landmarks)
+            align_eye = cv2.resize(align_eye,(face_roi,face_roi))
+            # print(align_face,align_face.shape)
+            img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
+        
         # # ------ END MTCNN ------
 
         # Sorted 
@@ -187,7 +218,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                     # update elPupilThresh into golbal image
                     center = (int(elPupilThresh_left[0][0] + x_min), int(elPupilThresh_left[0][1] + y_min))
                     new_elPupilThresh_left = (center,elPupilThresh_left[1],elPupilThresh_left[2])
-                    cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
+                    # cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
                     cv2.circle(img, center, 3, (0, 0, 255), -1)
                     left_center = center
                 # resize image into top left corner
@@ -213,7 +244,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                     # update elPupilThresh into golbal image
                     center = (int(elPupilThresh_right[0][0] + x_min), int(elPupilThresh_right[0][1] + y_min))
                     new_elPupilThresh_right = (center,elPupilThresh_right[1],elPupilThresh_right[2])
-                    cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
+                    # cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
                     cv2.circle(img, center, 3, (0, 0, 255), -1)
                     right_center = center
 
@@ -233,6 +264,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         next_txt_height += gap_txt_height
+
 
         # end my self code
         # ---------------------------------------------
