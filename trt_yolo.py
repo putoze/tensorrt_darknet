@@ -102,6 +102,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     eye_w_roi = 100
     eye_h_roi = 50
     face_roi = 200
+    head_upper = 0
     #------ put txt ------
     base_txt_height = 35
     gap_txt_height = 35
@@ -116,7 +117,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     start_record_f = 0
     save_video_cnt = 0
     #------ frame conut ------
-
+    frame_cnt = 0
     # ---------------------------
 
     print("")
@@ -167,16 +168,24 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                 nose_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
             if cl == 3:
                 mouse_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
+            if cl == 4:
+                head_upper = bb[1] ;   
 
         # # ------ MTCNN ------
-        dets, landmarks = mtcnn.detect(img, minsize=40)
-        # print('{} face(s) found'.format(len(dets)))
-        img = show_faces(img, dets, landmarks)
-        if len(dets) != 0:
-            align_eye = affineMatrix_eye(img, dets, landmarks)
-            align_eye = cv2.resize(align_eye,(face_roi,face_roi))
-            # print(align_face,align_face.shape)
-            img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
+        # if frame_cnt == 3:
+        #     dets, landmarks = mtcnn.detect(img, minsize=40)
+        #     # print('{} face(s) found'.format(len(dets)))
+        #     img = show_faces(img, dets, landmarks)
+        #     if len(dets) != 0:
+        #         align_eye = affineMatrix_eye(img, dets, landmarks)
+        #         align_eye = cv2.resize(align_eye,(face_roi,face_roi))
+        #         # print(align_face,align_face.shape)
+        #         img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
+        
+        # if frame_cnt == 3:
+        #     frame_cnt = 0
+        # else :
+        #     frame_cnt += 1
         
         # # ------ END MTCNN ------
 
@@ -198,7 +207,8 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
             # print("center of class eye x:", cen_eye[0])
 
             # using nose and mouse center to determine left or right region of eye
-            if(cen_eye[0] < nose_center_point[0] or cen_eye[0] < mouse_center_point[0]):
+            if(cen_eye[0] < nose_center_point[0] or cen_eye[0] < mouse_center_point[0]
+               and cen_eye[1] < nose_center_point[1] and cen_eye[1] > head_upper):
                 left_eye_img = img[y_min:y_max,x_min:x_max,:]
                 input_left_eye_img = left_eye_img
                 # determine input image
@@ -218,13 +228,14 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                     # update elPupilThresh into golbal image
                     center = (int(elPupilThresh_left[0][0] + x_min), int(elPupilThresh_left[0][1] + y_min))
                     new_elPupilThresh_left = (center,elPupilThresh_left[1],elPupilThresh_left[2])
-                    # cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
+                    cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
                     cv2.circle(img, center, 3, (0, 0, 255), -1)
                     left_center = center
                 # resize image into top left corner
                 left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
 
-            elif(cen_eye[0] > nose_center_point[0] or cen_eye[0] > mouse_center_point[0]):
+            elif(cen_eye[0] > nose_center_point[0] or cen_eye[0] > mouse_center_point[0]
+                 and cen_eye[1] < nose_center_point[1] and cen_eye[1] > head_upper):
                 right_eye_img = img[y_min:y_max,x_min:x_max,:]
                 input_right_eye_img = right_eye_img
                 # determine input image
@@ -244,7 +255,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                     # update elPupilThresh into golbal image
                     center = (int(elPupilThresh_right[0][0] + x_min), int(elPupilThresh_right[0][1] + y_min))
                     new_elPupilThresh_right = (center,elPupilThresh_right[1],elPupilThresh_right[2])
-                    # cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
+                    cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
                     cv2.circle(img, center, 3, (0, 0, 255), -1)
                     right_center = center
 

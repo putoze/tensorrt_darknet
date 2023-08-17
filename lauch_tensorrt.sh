@@ -12,6 +12,8 @@ echo [3]: otocam  yolov3-tiny-mid-track-owl
 echo ----------------
 echo [4]: otocam mtcnn  
 echo ----------------
+echo [5]: Video yolov3-tiny-mid_eyetracker0808  
+echo ----------------
 echo -n "Press enter to start it:"
 
 read MY_mode
@@ -78,10 +80,21 @@ if [ $MY_mode -eq 4 ] ; then
 
 fi
 
-
 #============================================================================ 
 
 if [ $MY_mode -eq 5 ] ; then
+    echo ============
+    echo 「Video tensorrt demo with yolov3-tiny-mid_eyetracker」
+    echo ============
+    python3 trt_yolo.py \
+    -m ./mid-track-owl/yolov3-tiny-mid_eyetracker \
+    --video ./../tensor_test.avi -c 5 -t 0.8 #--width 1280 --height 722
+
+fi
+
+#============================================================================ 
+
+if [ $MY_mode -eq 6 ] ; then
     echo ============
     echo 「map tensorrt demo with yolov3-tiny-mid_eyetracker」
     echo ============
