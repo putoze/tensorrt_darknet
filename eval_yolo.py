@@ -102,14 +102,14 @@ def main():
 
     # Run COCO mAP evaluation
     # Reference: https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-    cocoGt = COCO(args.annotations)
-    cocoDt = cocoGt.loadRes(results_file)
-    imgIds = sorted(cocoGt.getImgIds())
-    cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
-    cocoEval.params.imgIds = imgIds
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    cocoEval.summarize()
+    # cocoGt = COCO(args.annotations)
+    # cocoDt = cocoGt.loadRes(results_file)
+    # imgIds = sorted(cocoGt.getImgIds())
+    # cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
+    # cocoEval.params.imgIds = imgIds
+    # cocoEval.evaluate()
+    # cocoEval.accumulate()
+    # cocoEval.summarize()
 
 
 if __name__ == '__main__':

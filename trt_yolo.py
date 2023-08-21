@@ -19,7 +19,7 @@ from utils.camera import add_camera_args, Camera
 from utils.display import open_window, set_display, show_fps
 from utils.visualization import BBoxVisualization
 from utils.yolo_with_plugins import TrtYOLO
-from utils.fitEllipse import find_max_Thresh
+from process_alg.fitEllipse import find_max_Thresh
 
 WINDOW_NAME = 'TrtYOLODemo'
 
@@ -138,7 +138,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
         # write my self code
         #(img, text, org, fontFace, fontScale, color, thickness, lineType)
-        # Write the user guide interface
+        #Write the user guide interface
         next_txt_height = base_txt_height
         cv2.putText(img,"Esc: Quit",(cam.img_width-len_width,base_txt_height), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -171,16 +171,15 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
             if cl == 4:
                 head_upper = bb[1] ;   
 
-        # # ------ MTCNN ------
-        # if frame_cnt == 3:
-        #     dets, landmarks = mtcnn.detect(img, minsize=40)
-        #     # print('{} face(s) found'.format(len(dets)))
-        #     img = show_faces(img, dets, landmarks)
-        #     if len(dets) != 0:
-        #         align_eye = affineMatrix_eye(img, dets, landmarks)
-        #         align_eye = cv2.resize(align_eye,(face_roi,face_roi))
-        #         # print(align_face,align_face.shape)
-        #         img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
+        # # ------ MTCNN ------\
+        # dets, landmarks = mtcnn.detect(img, minsize=40)
+        # # print('{} face(s) found'.format(len(dets)))
+        # img = show_faces(img, dets, landmarks)
+        # if len(dets) != 0:
+        #     align_eye = affineMatrix_eye(img, dets, landmarks)
+        #     align_eye = cv2.resize(align_eye,(face_roi,face_roi))
+        #     # print(align_face,align_face.shape)
+        #     img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
         
         # if frame_cnt == 3:
         #     frame_cnt = 0
