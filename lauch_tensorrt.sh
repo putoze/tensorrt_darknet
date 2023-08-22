@@ -50,7 +50,7 @@ if [ $MY_mode -eq 2 ] ; then
     echo img tensorrt demo with yolov3-tiny-mid_eyetracker0808」
     echo ============
 
-    for filelist in ./test_image/test/*.png;do
+    for filelist in ./test_image/frank/*.png;do
     
     python3 trt_yolo.py \
     -m ./mid-track0808/yolov3-tiny-mid_eyetracker0808 \

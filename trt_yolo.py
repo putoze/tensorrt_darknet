@@ -220,6 +220,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
                        and cen_eye[1] < y_max and cen_eye[1] > y_min):
                         input_left_eye_img = img[y1_min:y1_max,x1_min:x1_max,:]
                         x_min, y_min, x_max, y_max = x1_min, y1_min, x1_max, y1_max
+                        
                 
                 #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
                 elPupilThresh_left = find_max_Thresh(input_left_eye_img,flag_list)

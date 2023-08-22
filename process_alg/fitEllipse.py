@@ -9,14 +9,20 @@ def find_max_Thresh(input_img,flag_list):
     if flag_list[0]:
         img_gray = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
         target_img = img_gray
+    
+    # Normalize image
+    # min_pixel_value = np.min(img_gray)
+    # max_pixel_value = np.max(img_gray)
+    # normalized_image = ((img_gray - min_pixel_value) / (max_pixel_value - min_pixel_value) * 255).astype(np.uint8)
+    # target_img = normalized_image
+
+    equalized_image = cv2.equalizeHist(img_gray)
+    target_img = equalized_image
 
     # Thresholding if binary_flag is true
     if flag_list[1]:
-        _, binary = cv2.threshold(target_img, 127, 255, cv2.THRESH_BINARY_INV) #95, 255
-    #     binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-    # cv2.THRESH_BINARY, 11, 2)
-        # binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,\
-        #         cv2.THRESH_BINARY, 11, 2)
+        binary = cv2.adaptiveThreshold(target_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,\
+                cv2.THRESH_BINARY, 11, 2)
         target_img = binary
 
     # Morphological operations if morphology_flag is true
@@ -52,17 +58,18 @@ def find_max_Thresh(input_img,flag_list):
 
     # to show image or not
     # if flag_list[1]:
-    #     cv2.imshow("binary Image", binary)
+    #     cv2.imshow("binary Image", cv2.resize(binary,(100,100)))
     # if flag_list[2]:
-    #     cv2.imshow("morphology Image", morphology_img)
+    #     cv2.imshow("morphology Image", cv2.resize(morphology_img,(100,100)))
     # if flag_list[3]:
-    #     cv2.imshow("Gaussian Image", Gaussblur_img)
+    #     cv2.imshow("Gaussian Image", cv2.resize(Gaussblur_img,(100,100)))
     # if flag_list[4]:
-    #     cv2.imshow("Sobel_img Image", Sobel_img)
+    #     cv2.imshow("Sobel_img Image", cv2.resize(Sobel_img,(100,100)))
     # if flag_list[5]:
-    #     cv2.imshow("canny Image", canny)
+    #     cv2.imshow("canny Image", cv2.resize(canny,(100,100)))
     # if flag_list[6]:
-    #     cv2.imshow("contours Image", target_img)
+    #     cv2.imshow("contours Image", cv2.resize(target_img,(100,100)))
+    # cv2.imshow("equalized Image", cv2.resize(equalized_image,(100,100)))
 
     # find max area
     maxArea = 0
