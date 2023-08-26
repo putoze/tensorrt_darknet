@@ -79,22 +79,6 @@ def affineMatrix_eye(img, boxes, landmarks, scale=2.5):
 
     return align_eye 
 
-def pupil_fit(img,pupil,flag_list):
-    #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
-    margin = 0
-    input_eye_img = img[pupil[1]-margin:pupil[3]+margin,pupil[0]-margin:pupil[2]+margin,:]
-    elPupilThresh = find_max_Thresh(input_eye_img,flag_list)
-    if elPupilThresh != None:
-        # update elPupilThresh into golbal image
-        center = (int(elPupilThresh[0][0] + pupil[0]), int(elPupilThresh[0][1] + pupil[1]))
-        new_elPupilThresh_left = (center,elPupilThresh[1],elPupilThresh[2])
-        cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
-        cv2.circle(img, center, 3, (0, 0, 255), -1)
-        # resize image into top left corner
-        return center
-    else:
-        return 0
-
 def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     """Continuously capture images from camera and do object detection.
 
@@ -118,7 +102,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     eye_w_roi = 100
     eye_h_roi = 50
     face_roi = 200
-    driver_face_roi = [0,cam.img_width,0,cam.img_height]
+    head_upper = 0
     #------ put txt ------
     base_txt_height = 35
     gap_txt_height = 35
@@ -128,7 +112,6 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
     left_eye_img = cv2.imread("./test_image/eye/2.png")  
     left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
-    
     #------ record/save ------
     save_cnt = 0
     start_record_f = 0
@@ -174,40 +157,19 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         next_txt_height += gap_txt_height
 
         # ------- Main Algorithm ------
-        face_max = 0
-        eye_right = []
-        eye_left  = []
-        pupil_left = []
-        pupil_right = []
-        # find driver face
+        bb_eye_list = []
+        bb_pupil_list = []
         for bb, cf, cl in zip(boxes, confs, clss):
+            if cl == 0:
+                bb_eye_list.append(bb)
+            if cl == 1:
+                bb_pupil_list.append(bb)
+            if cl == 2:
+                nose_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
+            if cl == 3:
+                mouse_center_point = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
             if cl == 4:
-                face_area = (bb[2] - bb[0])*(bb[3] - bb[1])
-                if(face_area > face_max) :
-                    face_max = face_area
-                    driver_face_roi = bb
-        # find all boundary of face
-        for bb, cf, cl in zip(boxes, confs, clss):
-            #bb_min_x,bb_min_y,bb_max_x,bb_max_y = bb
-            center = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
-            if (center[0] > driver_face_roi[0] and center[0] < driver_face_roi[2]) \
-            and (center[1] > driver_face_roi[1] and center[1] < driver_face_roi[3]):
-                if cl == 0 and bb[3] < nose_center_point[1]:
-                    if (center[0] < nose_center_point[0] or center[0] < mouse_center_point[0]):
-                        eye_left = bb
-                    else:
-                        eye_right = bb
-                if cl == 1 and bb[3] < nose_center_point[1]:
-                    if (center[0] < nose_center_point[0]
-                    or center[0] < mouse_center_point[0]):
-                        pupil_left = bb
-                    else :
-                        pupil_right = bb
-                if cl == 2 :
-                    nose_center_point = center
-                if cl == 3:
-                    mouse_center_point = center
-
+                head_upper = bb[1] ;   
 
         # # ------ MTCNN ------\
         # dets, landmarks = mtcnn.detect(img, minsize=40)
@@ -229,23 +191,76 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         # Sorted 
         # bb_eye_list = sorted(bb_eye_list, key=lambda x: x[0])
         # bb_pupil_list = sorted(bb_pupil_list, key=lambda x: x[0])
-        
+
         # To find the eye roi
         flag_list = [1,1,1,1,1,1,1]
-        # pupil left
-        if len(pupil_left) > 0:
-            left_center = pupil_fit(img,pupil_left,flag_list)
-        # pupil right
-        if len(pupil_right) > 0:
-            right_center = pupil_fit(img,pupil_right,flag_list)
-        if len(eye_left) > 0:
-            # print("eye_left",eye_left)
-            left_eye_img = img[eye_left[1]:eye_left[3],eye_left[0]:eye_left[2],:]
-            left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
-        if len(eye_right) > 0:
-            # print("eye_right",eye_right)
-            right_eye_img = img[eye_right[1]:eye_right[3],eye_right[0]:eye_right[2],:]
-            right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
+        for i in range(len(bb_eye_list)):
+            x_min, y_min, x_max, y_max = bb_eye_list[i][0], \
+                bb_eye_list[i][1], bb_eye_list[i][2], bb_eye_list[i][3]
+            # center eye roi from yolo-detection
+            cen_eye = (x_min+(x_max - x_min)/2,y_min+(y_max - y_min)/2)
+
+            # print("number of eye index:",i)
+            # print("center of class nose x:", nose_center_point[0])
+            # print("center of class mouse x:", mouse_center_point[0])
+            # print("center of class eye x:", cen_eye[0])
+
+            # using nose and mouse center to determine left or right region of eye
+            if(cen_eye[0] < nose_center_point[0] or cen_eye[0] < mouse_center_point[0]
+               and cen_eye[1] < nose_center_point[1] and cen_eye[1] > head_upper):
+                left_eye_img = img[y_min:y_max,x_min:x_max,:]
+                input_left_eye_img = left_eye_img
+                # determine input image
+                for i in range(len(bb_pupil_list)):
+                    x1_min, y1_min, x1_max, y1_max = bb_pupil_list[i][0], \
+                        bb_pupil_list[i][1], bb_pupil_list[i][2], bb_pupil_list[i][3]
+                    cen_eye = (x1_min+(x1_max - x1_min)/2,y1_min+(y1_max - y1_min)/2)
+                    # if center of pupil in the region of eye, then change input image
+                    if(cen_eye[0] < x_max and cen_eye[0] > x_min 
+                       and cen_eye[1] < y_max and cen_eye[1] > y_min):
+                        input_left_eye_img = img[y1_min:y1_max,x1_min:x1_max,:]
+                        x_min, y_min, x_max, y_max = x1_min, y1_min, x1_max, y1_max
+                        
+                
+                #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
+                elPupilThresh_left = find_max_Thresh(input_left_eye_img,flag_list)
+                if elPupilThresh_left != None:
+                    # update elPupilThresh into golbal image
+                    center = (int(elPupilThresh_left[0][0] + x_min), int(elPupilThresh_left[0][1] + y_min))
+                    new_elPupilThresh_left = (center,elPupilThresh_left[1],elPupilThresh_left[2])
+                    cv2.ellipse(img, new_elPupilThresh_left, (0, 255, 0), 2)
+                    cv2.circle(img, center, 3, (0, 0, 255), -1)
+                    left_center = center
+                # resize image into top left corner
+                left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
+
+            elif(cen_eye[0] > nose_center_point[0] or cen_eye[0] > mouse_center_point[0]
+                 and cen_eye[1] < nose_center_point[1] and cen_eye[1] > head_upper):
+                right_eye_img = img[y_min:y_max,x_min:x_max,:]
+                input_right_eye_img = right_eye_img
+                # determine input image
+                for i in range(len(bb_pupil_list)):
+                    x1_min, y1_min, x1_max, y1_max = bb_pupil_list[i][0], \
+                        bb_pupil_list[i][1], bb_pupil_list[i][2], bb_pupil_list[i][3]
+                    cen_eye = (x1_min+(x1_max - x1_min)/2,y1_min+(y1_max - y1_min)/2)
+                    # if center of pupil in the region of eye, then change input image
+                    if(cen_eye[0] < x_max and cen_eye[0] > x_min 
+                       and cen_eye[1] < y_max and cen_eye[1] > y_min):
+                        input_right_eye_img = img[y1_min:y1_max,x1_min:x1_max,:]
+                        x_min, y_min, x_max, y_max = x1_min, y1_min, x1_max, y1_max
+                
+                #(Gray,Binary,Morphological,Gaussian blur,Sobel,Canny,Find contours)
+                elPupilThresh_right = find_max_Thresh(input_right_eye_img,flag_list)
+                if elPupilThresh_right != None:
+                    # update elPupilThresh into golbal image
+                    center = (int(elPupilThresh_right[0][0] + x_min), int(elPupilThresh_right[0][1] + y_min))
+                    new_elPupilThresh_right = (center,elPupilThresh_right[1],elPupilThresh_right[2])
+                    cv2.ellipse(img, new_elPupilThresh_right, (0, 255, 0), 2)
+                    cv2.circle(img, center, 3, (0, 0, 255), -1)
+                    right_center = center
+
+                # resize image into top left corner
+                right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
 
         # update eye image
         img[0:eye_h_roi,0:eye_w_roi,:] = left_eye_img
@@ -260,6 +275,7 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         next_txt_height += gap_txt_height
+
 
         # end my self code
         # ---------------------------------------------
