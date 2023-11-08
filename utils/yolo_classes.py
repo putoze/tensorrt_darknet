@@ -4,11 +4,23 @@ NOTE: Number of YOLO COCO output classes differs from SSD COCO models.
 """
 
 SELF_CLASSES_LIST = [
+"mask",
+"glasses",
+"seatbelt",
+"phone",
+"smoke"
+]
+
+SELF_CLASSES_LIST_2 = [
 "eye",
 "pupil",
 "nose",
 "mouth",
-"face"
+"face",
+"mask",
+"glasses",
+"seatbelt",
+"phone"
 ]
 
 # For translating YOLO class ids (0~79) to SSD class ids (0~90)
@@ -25,5 +37,7 @@ def get_cls_dict(category_num):
     """Get the class ID to name translation dictionary."""
     if category_num == 5:
         return {i: n for i, n in enumerate(SELF_CLASSES_LIST)}
+    elif category_num == 9:
+        return {i: n for i, n in enumerate(SELF_CLASSES_LIST_2)}
     else:
         return {i: 'CLS%d' % i for i in range(category_num)}

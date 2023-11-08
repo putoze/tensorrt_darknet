@@ -22,6 +22,8 @@ from utils.yolo_with_plugins import TrtYOLO
 from process_alg.fitEllipse import find_max_Thresh
 
 WINDOW_NAME = 'TrtYOLODemo'
+# coordinate
+coordinates = []
 
 def parse_args():
     """Parse input arguments."""
@@ -95,6 +97,12 @@ def pupil_fit(img,pupil,flag_list):
     else:
         return 0
 
+def mouse_callback(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:  
+        coordinates.append((x,y))
+        # cv2.circle(image,(x,y),100,(255,0,0), -1)
+        print(f"Mouse clicked at ({x}, {y})")
+
 def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     """Continuously capture images from camera and do object detection.
 
@@ -107,6 +115,8 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
     full_scrn = False
     fps = 0.0
     tic = time.time()
+
+    cv2.setMouseCallback(WINDOW_NAME, mouse_callback)
 
     # Self-define global parameter
     # ---------------------------
@@ -153,113 +163,11 @@ def loop_and_detect(cam, trt_yolo, mtcnn, conf_th, vis):
         if img is None:
             break
         boxes, confs, clss = trt_yolo.detect(img, conf_th)
-        # write my self code
-        #(img, text, org, fontFace, fontScale, color, thickness, lineType)
-        #Write the user guide interface
-        next_txt_height = base_txt_height
-        cv2.putText(img,"Esc: Quit",(cam.img_width-len_width,base_txt_height), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
-        cv2.putText(img,"F  : Full Screen",(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
-        cv2.putText(img,"S  : Save img",(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
-        cv2.putText(img,"R  : Record video",(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
-        cv2.putText(img,"E  : End record video",(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
 
-        # ------- Main Algorithm ------
-        face_max = 0
-        eye_right = []
-        eye_left  = []
-        pupil_left = []
-        pupil_right = []
-        # find driver face
-        for bb, cf, cl in zip(boxes, confs, clss):
-            if cl == 4:
-                face_area = (bb[2] - bb[0])*(bb[3] - bb[1])
-                if(face_area > face_max) :
-                    face_max = face_area
-                    driver_face_roi = bb
-        # find all boundary of face
-        for bb, cf, cl in zip(boxes, confs, clss):
-            #bb_min_x,bb_min_y,bb_max_x,bb_max_y = bb
-            center = (bb[0]+(bb[2]-bb[0])/2,bb[1]+(bb[3]-bb[1])/2)
-            if (center[0] > driver_face_roi[0] and center[0] < driver_face_roi[2]) \
-            and (center[1] > driver_face_roi[1] and center[1] < driver_face_roi[3]):
-                if cl == 0 and bb[3] < nose_center_point[1]:
-                    if (center[0] < nose_center_point[0] or center[0] < mouse_center_point[0]):
-                        eye_left = bb
-                    else:
-                        eye_right = bb
-                if cl == 1 and bb[3] < nose_center_point[1]:
-                    if (center[0] < nose_center_point[0]
-                    or center[0] < mouse_center_point[0]):
-                        pupil_left = bb
-                    else :
-                        pupil_right = bb
-                if cl == 2 :
-                    nose_center_point = center
-                if cl == 3:
-                    mouse_center_point = center
-
-
-        # # ------ MTCNN ------\
-        # dets, landmarks = mtcnn.detect(img, minsize=40)
-        # # print('{} face(s) found'.format(len(dets)))
-        # img = show_faces(img, dets, landmarks)
-        # if len(dets) != 0:
-        #     align_eye = affineMatrix_eye(img, dets, landmarks)
-        #     align_eye = cv2.resize(align_eye,(face_roi,face_roi))
-        #     # print(align_face,align_face.shape)
-        #     img[eye_h_roi:eye_h_roi+face_roi,0:face_roi:] = align_eye
-        
-        # if frame_cnt == 3:
-        #     frame_cnt = 0
-        # else :
-        #     frame_cnt += 1
-        
-        # # ------ END MTCNN ------
-
-        # Sorted 
-        # bb_eye_list = sorted(bb_eye_list, key=lambda x: x[0])
-        # bb_pupil_list = sorted(bb_pupil_list, key=lambda x: x[0])
-        
-        # To find the eye roi
-        flag_list = [1,1,1,1,1,1,1]
-        # pupil left
-        if len(pupil_left) > 0:
-            left_center = pupil_fit(img,pupil_left,flag_list)
-        # pupil right
-        if len(pupil_right) > 0:
-            right_center = pupil_fit(img,pupil_right,flag_list)
-        if len(eye_left) > 0:
-            # print("eye_left",eye_left)
-            left_eye_img = img[eye_left[1]:eye_left[3],eye_left[0]:eye_left[2],:]
-            left_eye_img = cv2.resize(left_eye_img,(eye_w_roi,eye_h_roi))
-        if len(eye_right) > 0:
-            # print("eye_right",eye_right)
-            right_eye_img = img[eye_right[1]:eye_right[3],eye_right[0]:eye_right[2],:]
-            right_eye_img = cv2.resize(right_eye_img,(eye_w_roi,eye_h_roi))
-
-        # update eye image
-        img[0:eye_h_roi,0:eye_w_roi,:] = left_eye_img
-        img[0:eye_h_roi,eye_w_roi:2*eye_w_roi,:]  = right_eye_img
-
-        content = "Left-center:("+str(left_center[0])+","+str(left_center[1])+")"
-        # update center point
-        cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
-        content = "Right-center:("+str(right_center[0])+","+str(right_center[1])+")"
-        cv2.putText(img,content,(cam.img_width-len_width,next_txt_height),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        next_txt_height += gap_txt_height
+        if coordinates != []:
+            print("right_center",left_center)
+            print("error right center:",abs(coordinates[0][0]-right_center[0]),abs(coordinates[0][1]-right_center[1]))
+            coordinates.pop()
 
         # end my self code
         # ---------------------------------------------

@@ -20,11 +20,8 @@ from utils.yolo_with_plugins import TrtYOLO
 from utils.yolo_classes import yolo_cls_to_ssd
 
 
-
-HOME = os.environ['HOME']
-VAL_IMGS_DIR = HOME + '/data/coco/images/val2017'
-VAL_ANNOTATIONS = HOME + '/data/coco/annotations/instances_val2017.json'
-
+VAL_IMGS_DIR = '/media/joe/Xavierssd/first_years_5cs/data/test/images'
+VAL_ANNOTATIONS = 'custom_dataset_coco_format.json'
 
 def parse_args():
     """Parse input arguments."""
@@ -65,9 +62,9 @@ def check_args(args):
 def generate_results(trt_yolo, imgs_dir, jpgs, results_file, non_coco):
     """Run detection on each jpg and write results to file."""
     results = []
+    image_id = 1
     for jpg in progressbar(jpgs):
         img = cv2.imread(os.path.join(imgs_dir, jpg))
-        image_id = int(jpg.split('.')[0].split('_')[-1])
         boxes, confs, clss = trt_yolo.detect(img, conf_th=1e-2)
         for box, conf, cls in zip(boxes, confs, clss):
             x = float(box[0])
@@ -80,6 +77,8 @@ def generate_results(trt_yolo, imgs_dir, jpgs, results_file, non_coco):
                             'category_id': cls,
                             'bbox': [x, y, w, h],
                             'score': float(conf)})
+        image_id += 1
+
     with open(results_file, 'w') as f:
         f.write(json.dumps(results, indent=4))
 
@@ -90,9 +89,9 @@ def main():
     if args.category_num <= 0:
         raise SystemExit('ERROR: bad category_num (%d)!' % args.category_num)
     if not os.path.isfile('yolo/%s.trt' % args.model):
-        raise SystemExit('ERROR: file (yolo/%s.trt) not found!' % args.model)
+        raise SystemExit('ERROR: file (%s.trt) not found!' % args.model)
 
-    results_file = 'yolo/results_%s.json' % args.model
+    results_file = 'results.json'
 
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
@@ -102,14 +101,20 @@ def main():
 
     # Run COCO mAP evaluation
     # Reference: https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-    # cocoGt = COCO(args.annotations)
-    # cocoDt = cocoGt.loadRes(results_file)
-    # imgIds = sorted(cocoGt.getImgIds())
-    # cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
-    # cocoEval.params.imgIds = imgIds
-    # cocoEval.evaluate()
-    # cocoEval.accumulate()
-    # cocoEval.summarize()
+    cocoGt = COCO(args.annotations)
+    cocoDt = cocoGt.loadRes(results_file)
+    imgIds = sorted(cocoGt.getImgIds())
+    cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
+    cocoEval.params.imgIds = imgIds
+    cocoEval.evaluate()
+    cocoEval.accumulate()
+    cocoEval.summarize()
+
+    for category_id, category_name in cocoGt.cats.items():
+        print(f'Class {category_name["name"]}:')
+        i = cocoGt.getCatIds(category_name["name"])[0]  # 获取类别的索引
+        print(f'AP: {cocoEval.stats[i]:.3f}')
+        print(f'Recall: {cocoEval.stats[i + len(cocoGt.cats)]:.3f}')
 
 
 if __name__ == '__main__':
