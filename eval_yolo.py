@@ -20,8 +20,10 @@ from utils.yolo_with_plugins import TrtYOLO
 from utils.yolo_classes import yolo_cls_to_ssd
 
 
-VAL_IMGS_DIR = '/media/joe/Xavierssd/first_years_5cs/data/test/images'
-VAL_ANNOTATIONS = 'custom_dataset_coco_format.json'
+VAL_IMGS2_DIR = '/media/joe/Xavierssd/first_years_5cs/data/test/images'
+VAL_ANNOTATIONS = 'custom_dataset_all.json'
+
+VAL_IMGS_DIR = '/media/joe/Xavierssd/20231011_4cs_dataset/test'
 
 def parse_args():
     """Parse input arguments."""
@@ -59,12 +61,28 @@ def check_args(args):
         sys.exit('%s is not a valid file' % args.annotations)
 
 
-def generate_results(trt_yolo, imgs_dir, jpgs, results_file, non_coco):
+def generate_results(trt_yolo, imgs_dir, jpgs, imgs_dir2, jpgs2, results_file, non_coco):
     """Run detection on each jpg and write results to file."""
     results = []
     image_id = 1
     for jpg in progressbar(jpgs):
         img = cv2.imread(os.path.join(imgs_dir, jpg))
+        boxes, confs, clss = trt_yolo.detect(img, conf_th=1e-2)
+        for box, conf, cls in zip(boxes, confs, clss):
+            x = float(box[0])
+            y = float(box[1])
+            w = float(box[2] - box[0] + 1)
+            h = float(box[3] - box[1] + 1)
+            cls = int(cls)
+            cls = cls if non_coco else yolo_cls_to_ssd[cls]
+            results.append({'image_id': image_id,
+                            'category_id': cls,
+                            'bbox': [x, y, w, h],
+                            'score': float(conf)})
+        image_id += 1
+
+    for jpg in progressbar(jpgs2):
+        img = cv2.imread(os.path.join(imgs_dir2, jpg))
         boxes, confs, clss = trt_yolo.detect(img, conf_th=1e-2)
         for box, conf, cls in zip(boxes, confs, clss):
             x = float(box[0])
@@ -92,11 +110,13 @@ def main():
         raise SystemExit('ERROR: file (%s.trt) not found!' % args.model)
 
     results_file = 'results.json'
+    
 
     trt_yolo = TrtYOLO(args.model, args.category_num, args.letter_box)
 
     jpgs = [j for j in os.listdir(args.imgs_dir) if j.endswith('.jpg')]
-    generate_results(trt_yolo, args.imgs_dir, jpgs, results_file,
+    jpgs2 = [j for j in os.listdir(VAL_IMGS2_DIR) if j.endswith('.jpg')]
+    generate_results(trt_yolo, args.imgs_dir, jpgs, VAL_IMGS2_DIR, jpgs2, results_file,
                      non_coco=args.non_coco)
 
     # Run COCO mAP evaluation
@@ -110,11 +130,11 @@ def main():
     cocoEval.accumulate()
     cocoEval.summarize()
 
-    for category_id, category_name in cocoGt.cats.items():
-        print(f'Class {category_name["name"]}:')
-        i = cocoGt.getCatIds(category_name["name"])[0]  # 获取类别的索引
-        print(f'AP: {cocoEval.stats[i]:.3f}')
-        print(f'Recall: {cocoEval.stats[i + len(cocoGt.cats)]:.3f}')
+    # for category_id, category_name in cocoGt.cats.items():
+    #     print(f'Class {category_name["name"]}:')
+    #     i = cocoGt.getCatIds(category_name["name"])[0]  # 获取类别的索引
+    #     print(f'AP: {cocoEval.stats[i]:.3f}')
+    #     print(f'Recall: {cocoEval.stats[i + len(cocoGt.cats)]:.3f}')
 
 
 if __name__ == '__main__':

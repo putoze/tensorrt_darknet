@@ -197,7 +197,7 @@ if [ $MY_mode -eq 10 ] ; then
     -c 5 \
     --non_coco \
     # --annotations custom_dataset_all.json \
-    # --imgs_dir /media/joe/Xavierssd/first_years_5cs/data/all_test_img
+    # --imgs_dir /media/joe/Xavierssd/first_years_5cs/data/test 
 
 fi
 
